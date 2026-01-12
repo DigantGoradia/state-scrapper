@@ -38,6 +38,7 @@ class EmailNotifier:
         msg.attach(MIMEText(html_body, 'html'))
 
         try:
+            self.logger.info(f"Connecting to SMTP server: {smtp_server}:{smtp_port}")
             server = smtplib.SMTP(smtp_server, smtp_port)
             server.starttls()
             server.login(sender_email, sender_password)

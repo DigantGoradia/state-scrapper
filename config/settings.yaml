@@ -7,7 +7,7 @@ recipients:
   - user@example.com
 
 smtp:
-  server: smtp.gmail.com
+  server: smtp-relay.brevo.com
   port: 587
 
 schedule_interval_hours: 24
