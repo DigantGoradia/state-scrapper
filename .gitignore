@@ -31,3 +31,5 @@ htmlcov/
 
 # Project specific
 data/history.json
+
+docs/

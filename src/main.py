@@ -1,21 +1,14 @@
 import os
-import json
-import yaml
 import time
 import argparse
 import logging
 import sys
-from pathlib import Path
-from datetime import datetime
 from dotenv import load_dotenv
 
-# Add project root to path to ensure imports work
-project_root = Path(__file__).parent
-sys.path.append(str(project_root))
-
-from src.scraper import JobScraper
-from src.notifier import EmailNotifier
-from src.storage import JobHistory
+# Relative imports for package execution
+from .scraper import JobScraper
+from .notifier import EmailNotifier
+from .storage import JobHistory
 
 # Configure logging
 logging.basicConfig(
@@ -30,45 +23,29 @@ logger = logging.getLogger(__name__)
 # Load environment variables from .env file
 load_dotenv()
 
-def load_config(config_path: str = "config/settings.yaml") -> dict:
+def load_config() -> dict:
+    """
+    Loads configuration from environment variables.
+    """
     config = {}
-    
-    # 1. Load from YAML
-    try:
-        with open(config_path, 'r') as f:
-            config = yaml.safe_load(f)
-    except FileNotFoundError:
-        logger.warning(f"Config file not found at {config_path}. Relying on defaults/env vars.")
-    except yaml.YAMLError as e:
-        logger.error(f"Invalid YAML in {config_path}: {e}")
-        sys.exit(1)
 
-    # 2. Key Mapping: Env Var -> Config Key
-    # We override JSON config with Environment Variables if they exist
-    env_mapping = {
-        "SMTP_SERVER": ("smtp", "server"),
-        "SMTP_PORT": ("smtp", "port"),
-        "SMTP_USER": ("smtp", "user"),
-        "SMTP_PASSWORD": ("smtp", "password"),
-        "SCHEDULE_INTERVAL_HOURS": ("schedule_interval_hours", None) # None means top level
+    # SMTP Configuration
+    config["smtp"] = {
+        "server": os.getenv("SMTP_SERVER"),
+        "port": int(os.getenv("SMTP_PORT", 587)),
+        "user": os.getenv("SMTP_USER"),
+        "password": os.getenv("SMTP_PASSWORD")
     }
 
-    for env_var, keys in env_mapping.items():
-        value = os.getenv(env_var)
-        if value:
-            # Handle type conversion for Port/Interval
-            if env_var in ["SMTP_PORT", "SCHEDULE_INTERVAL_HOURS"]:
-                try:
-                    value = int(value)
-                except ValueError:
-                    continue # Keep original if invalid int
+    # Application Settings
+    config["schedule_interval_hours"] = int(os.getenv("SCHEDULE_INTERVAL_HOURS", 24))
+    
+    # List parsing (comma separated)
+    recipients_str = os.getenv("RECIPIENTS", "")
+    config["recipients"] = [email.strip() for email in recipients_str.split(",") if email.strip()]
 
-            if keys[1]: # Nested key (e.g. smtp.user)
-                if keys[0] not in config:
-                    config[keys[0]] = {}
-                config[keys[0]][keys[1]] = value
-            else: # Top level key
-                config[keys[0]] = value
+    keywords_str = os.getenv("KEYWORDS", "analyst,developer,engineer")
+    config["keywords"] = [kw.strip() for kw in keywords_str.split(",") if kw.strip()]
 
     return config
 
@@ -102,7 +79,7 @@ def run_cycle(scraper, history, notifier, config):
     keywords = config.get("keywords", [])
     new_jobs = filter_jobs(all_jobs, keywords, processed_ids)
     
-    logger.info(f"rFound {len(new_jobs)} new jobs matching keywords.")
+    logger.info(f"Found {len(new_jobs)} new jobs matching keywords.")
 
     if new_jobs:
         # 4. Notify
@@ -122,11 +99,6 @@ def main():
 
     config = load_config()
     
-    # Override config for dry run if needed, or just pass a flag
-    # For simplicity, we just log in dry run if we wanted, but the Notifier 
-    # handles real sending. A 'real' dry run would mock the notifier.
-    # For now, we will rely on --once for manual checks combined with logs.
-
     scraper = JobScraper()
     history = JobHistory()
     notifier = EmailNotifier(config)
@@ -152,6 +124,15 @@ def main():
         
         logger.info(f"Sleeping for {interval_seconds} seconds...")
         time.sleep(interval_seconds)
+
+def dry_run():
+    """
+    Entry point for `uv run dry-run`
+    Simulates: python main.py --once --dry-run
+    """
+    # Simulate arguments
+    sys.argv = ["main.py", "--once", "--dry-run"]
+    main()
 
 if __name__ == "__main__":
     main()

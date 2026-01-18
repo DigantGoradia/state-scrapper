@@ -12,10 +12,17 @@ A modular, Dockerized Python application to scrape the NJ Civil Service Commissi
 ## Setup
 
 ### 1. Configuration
-Edit `config/settings.json` with your details:
-- `keywords`: List of job titles to search for.
-- `recipients`: List of email addresses to notify.
-- `smtp`: Your email provider details (e.g., Gmail App Password).
+1. Copy `.env.example` to `.env`:
+   ```bash
+   cp .env.example .env
+   # OR on Windows PowerShell
+   Copy-Item .env.example .env
+   ```
+2. Edit `.env` with your details:
+   - `SMTP_*`: Your email provider details.
+   - `RECIPIENTS`: Comma-separated list of email addresses.
+   - `KEYWORDS`: Comma-separated list of job titles to search for.
+   - `SCHEDULE_INTERVAL_HOURS`: How often to check for jobs (in hours).
 
 ### 2. Docker Usage (Recommended)
 
@@ -27,31 +34,35 @@ docker build -t nj-scraper .
 **Run the container:**
 Mount the `data` directory to persist the job history `json` file.
 ```bash
-docker run -d --name nj-scraper -v $(pwd)/data:/app/data nj-scraper
+docker run -d --name nj-scraper -v $(pwd)/data:/app/data --env-file .env nj-scraper
 ```
 
 ### 3. Manual Usage with uv
 
-**Install uv (if not installed):**
+**Install uv (globally):**
 ```bash
-pip install uv
+# Windows (PowerShell)
+irm https://astral.sh/uv/install.ps1 | iex
 ```
 
 **Install dependencies:**
 ```bash
-uv pip install -r pyproject.toml
-# OR if you want to create a venv and sync
-uv venv
-uv pip install -r pyproject.toml
+uv sync
 ```
 
 **Run the script:**
 ```bash
-python main.py
+uv run python -m src.main
 ```
-To run once (no loop):
+
+**Run Once (Dry Run):**
+Use the convenient alias to run a single check without sending actual emails (emails will be logged to console).
 ```bash
-python main.py --once
+uv run dry-run
+```
+Alternatively:
+```bash
+uv run python -m src.main --once --dry-run
 ```
 
 ## Testing
