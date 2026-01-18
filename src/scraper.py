@@ -27,7 +27,10 @@ class JobScraper:
         """
         self.logger.info("Fetching job list...")
         try:
-            response = requests.get(self.JOB_LIST_URL, timeout=30)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
+            response = requests.get(self.JOB_LIST_URL, headers=headers, timeout=30)
             response.raise_for_status()
         except requests.RequestException as e:
             self.logger.error(f"Failed to fetch job list: {e}")
