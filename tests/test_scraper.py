@@ -1,10 +1,14 @@
+from unittest.mock import Mock, patch
+
 import pytest
 import requests
-from unittest.mock import Mock, patch
-from src.scraper import JobScraper, Job
+
+from src.scraper import JobScraper
+
 
 @pytest.fixture
 def mock_html():
+    """Returns sample HTML content for testing."""
     return """
     <html>
         <body>
@@ -36,8 +40,10 @@ def mock_html():
     </html>
     """
 
-@patch('src.scraper.requests.get')
+
+@patch("src.scraper.requests.get")
 def test_fetch_jobs_success(mock_get, mock_html):
+    """Tests successful job fetching and parsing."""
     # Setup mock
     mock_response = Mock()
     mock_response.content = mock_html
@@ -50,7 +56,7 @@ def test_fetch_jobs_success(mock_get, mock_html):
 
     # Verify
     assert len(jobs) == 2
-    
+
     job1 = jobs[0]
     assert job1.symbol == "M1234"
     assert job1.title == "Software Developer"
@@ -62,8 +68,10 @@ def test_fetch_jobs_success(mock_get, mock_html):
     assert job2.symbol == "P5678"
     assert job2.title == "Systems Analyst"
 
-@patch('src.scraper.requests.get')
+
+@patch("src.scraper.requests.get")
 def test_fetch_jobs_failure(mock_get):
+    """Tests handling of request exceptions."""
     # Setup mock to raise error
     mock_get.side_effect = requests.RequestException("Connection Error")
 
@@ -74,8 +82,10 @@ def test_fetch_jobs_failure(mock_get):
     # Verify handles error gracefully
     assert jobs == []
 
-@patch('src.scraper.requests.get')
+
+@patch("src.scraper.requests.get")
 def test_fetch_jobs_no_table(mock_get):
+    """Tests handling of pages with no job table."""
     # Setup mock with empty HTML
     mock_response = Mock()
     mock_response.content = "<html><body></body></html>"
