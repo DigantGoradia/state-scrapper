@@ -70,3 +70,30 @@ Run unit tests:
 ```bash
 pytest
 ```
+
+## Development
+
+### Pre-commit Hooks
+This project uses `pre-commit` to enforce code quality before every commit.
+1. Install pre-commit:
+   ```bash
+   pip install pre-commit
+   # OR with uv
+   uv pip install pre-commit
+   ```
+2. Install the git hooks:
+   ```bash
+   pre-commit install
+   ```
+Now, linting and formatting checks will run automatically on `git commit`.
+
+### Code Quality (Ruff)
+We use `ruff` for linting, formatting, and import sorting.
+- **Run Linting**: `uv run ruff check .`
+- **Run Formatting**: `uv run ruff format .`
+
+## CI/CD
+This project uses GitHub Actions to automatically:
+- Lint and Check Formatting (using Ruff)
+- Verify Docker Build
+

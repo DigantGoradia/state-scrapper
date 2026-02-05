@@ -1,23 +1,37 @@
-FROM python:3.9-slim
+FROM python:3.12-slim-bookworm
+
+# Install UV
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_SYSTEM_PYTHON=1
 
 WORKDIR /app
 
-# Install uv provided by the astral-sh/uv Docker image or just pip install it
-# Using the method recommended for adding uv to a python image
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
-
-# Copy dependency definition
+# Install dependencies
+# Copy only pyproject.toml and uv.lock (if it exists) first to leverage cache
 COPY pyproject.toml .
+# COPY uv.lock . # Uncomment if/when uv.lock is committed and useful
 
-# Install dependencies using uv
-# --system installs into the system python environment, avoiding virtualenv overhead in Docker
-RUN uv pip install --system -r pyproject.toml
+# Install dependencies into the system python since we are in a container
+# using cache mount for faster rebuilds
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system -r pyproject.toml
+
+# Create a non-root user
+RUN useradd -m appuser && chown -R appuser /app
+USER appuser
 
 # Copy source code
 COPY . .
 
-# Create data directory
-RUN mkdir -p data
+# Ensure data directory exists and is writable by appuser if needed
+# (Doing this before switching user or adjusting permissions)
+USER root
+RUN mkdir -p data && chown -R appuser /app/data
+USER appuser
 
-# Run the application
-CMD ["python", "-u", "main.py"]
+# Correct entrypoint for src layout
+CMD ["python", "-m", "src.main"]
