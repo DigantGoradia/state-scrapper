@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v1
         with:
@@ -23,15 +23,12 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv pip install --system -r pyproject.toml
+        run: uv sync --frozen
 
       - name: Lint and Format Check
-        # We run ruff via uv directly if installed, or install it. 
-        # Since ruff is not in pyproject.toml explicitly (it's a tool), we might need to add it or run via `uvx`.
-        # Using uvx is cleaner for tools.
         run: |
-          uvx ruff check .
-          uvx ruff format --check .
+          uv run ruff check .
+          uv run ruff format --check .
 
   docker-build:
     name: Verify Docker Build
@@ -39,6 +36,6 @@ jobs:
     needs: quality
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Build Docker Image
         run: docker build . -t nj-scraper
